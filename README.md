@@ -1,6 +1,6 @@
 # POPCheck Lambda functions
 
-Examples to demonstrate how to use AWS Lambda functions to integrate with the POPCheck API to allow you to automatically update your database when field merchandiser complete visits.
+Examples to demonstrate how to use AWS Lambda functions to integrate with the POPCheck API.
 
 ## Getting Started
 
@@ -18,8 +18,8 @@ You'll need an account with [POPCheck](https://www.popcheckapp.com) as well as a
 For POPCheck you'll need to set up a user with API access. Steps:
 
 1. Login to your account at [POPCheck](https://www.popcheckapp.com)
-1. Click on your name in the top right and select *Team*
-1. Click *Add New* and enter a name, email and password for the API user. Select *API Access* as the Role. Note that the email does not need to be valid - you can enter 'api@yourorganisation.com' as an example
+1. Click on your name in the top right and select **Team**
+1. Click **Add New** and enter a name, email and password for the API user. Select *API Access* as the Role. Note that the email does not need to be valid - you can enter 'api@yourorganisation.com' as an example
 1. Keep a note of the email address and password. We'll use this later
 
 For Amazon Web Services you'll need to create an account at [Amazon Web Services](https://aws.amazon.com). This isn't designed to be an AWS course. We're assuming you know about creating Lambda functions in AWS. If not, see tutorials like [AWS Getting Started](http://docs.aws.amazon.com/lambda/latest/dg/getting-started.html).
@@ -30,21 +30,21 @@ For Amazon Web Services you'll need to create an account at [Amazon Web Services
 Download the Lambda functions. Click 'Clone or Download' in GitHub or execute this command in the console
 
 ```
-git clone https://github.com/agileprojectsltd/popcheck-lambda.git
+git clone https://github.com/AgileProjectsLtd/popcheck-lambda.git
 ```
 
 ### Configuring
 
 Open the relevant Lambda function in a text editor make these edits:
 
-* **API_EMAIL** to the POP Check API email address
-* **API_PASSWORD** to the POP Check API password
-* (if relevant) **SQS_QUEUE_URL** to the AWS Simple Queue Service url that is subscribed to POPCheck event notifications. Example format https://sqs.eu-west-1.amazonaws.com/123456789012/visitsCompleted
+* *API_EMAIL* to the POP Check API email address
+* *API_PASSWORD* to the POP Check API password
+* *SQS_QUEUE_URL* (if relevant) to the AWS Simple Queue Service url that is subscribed to POPCheck event notifications. Example format https://sqs.eu-west-1.amazonaws.com/123456789012/visitsCompleted
 
-* (if relevant) **DBS_SERVER** to your database server name
-* (if relevant) **DBS_DATABASE** to your database name
-* (if relevant) **DBS_USER** to a user with read access to your database
-* (if relevant) **DBS_PASSWORD** to the user's password
+* *DBS_SERVER* (if relevant) to your database server name
+* *DBS_DATABASE* (if relevant) to your database name
+* *DBS_USER* (if relevant) to a user with read access to your database
+* *DBS_PASSWORD* (if relevant) to the user's password
 
 ### Testing
 
