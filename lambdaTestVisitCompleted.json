@@ -1,0 +1,8 @@
+{
+  "Messages": [
+    {
+      "Body": "{ \"Message\" : \"a12a123a-1234-1aa1-1a1a-a12a1a12abcd\" }",
+      "ReceiptHandle": "TEST"
+    }
+  ]
+}

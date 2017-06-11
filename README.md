@@ -22,9 +22,10 @@ For Amazon Web Services you'll need to create an account at [Amazon Web Services
 
 ## Installing
 
-Download the Lambda functions. Click 'Clone or Download' in GitHub or execute this command in the console
+Download the Lambda functions. Click 'Clone or Download' in GitHub or execute this command in the console, assuming you want to use ~/Development as your development directory
 
 ```
+cd ~/Development
 git clone https://github.com/AgileProjectsLtd/popcheck-lambda.git
 ```
 
@@ -87,14 +88,35 @@ For the credentials we will use an AWS Role. Steps:
 1. Click *Validate Policy* to check your edits and then *Apply Policy*
 
 
+### Deployment to AWS Lambda
+
+Once you have checked the code over and made any edits you need to zip up the files. In the console run:
+
+```
+cd ~/Development/popcheck-lambda
+zip -r ../popcheck-lambda.zip *
+```
+
+To create a new Lambda function in AWS follow these steps:
+
+1. Go to AWS Lambda and click *Get Started Now* if this is your first visit or click *Create a Lambda function* if you've been before
+1. Select *Blank Function*. Leave the triggers blank for now and click Next
+1. Add a function name like popcheckVisitsCompleted. Select *Node.js 4.3* as the Runtime
+1. Choose *Upload a .ZIP file* and select the file you created on your local machine called popcheck-lambda.zip
+1. Chnage the Handler to be the name of the js file you are using. For example if you are using 'visitsCompleted.js' this becomes 'visitsCompleted.handler'
+1. Choose the existing role you created called 'popcheck_role'
+1. Under *Advanced Settings* set the *Timeout* to 5 minutes. This is the maximum allowed by AWS (at time of writing)
+1. Leave all the other settings as their defaults and click Next
+1. Click *Create function*
+
 ### Configuring
 
-Open the relevant Lambda function in a text editor and make these edits:
+We use Environment Variables to store your sensitive data so it doesn't appear in any scripts. To set your environment variables click on the *Code* tab. Beneath your code you will see the *Environment variables* area. Enter the relevant environment variables for the script you are using:
 
 * *POPCHECK_API_EMAIL* to the POP Check API email address
 * *POPCHECK_API_PASSWORD* to the POP Check API password
 
-* *AWS_REGION* to the AWS region you are using, like 'eu-west-1'
+* *AWS_SQS_REGION* to the AWS region you are using, like 'eu-west-1'
 * *AWS_SQS_QUEUE_URL* (if relevant) to the AWS Simple Queue Service url that is subscribed to POPCheck event notifications. Example format https://sqs.eu-west-1.amazonaws.com/123456789012/visitsCompleted
 
 * *DBS_SERVER* (if relevant) to your database server name
@@ -102,13 +124,14 @@ Open the relevant Lambda function in a text editor and make these edits:
 * *DBS_USER* (if relevant) to a user with read access to your database
 * *DBS_PASSWORD* (if relevant) to the user's password
 
+
 ### Testing
 
-//todo
+Lambda supports test scripts. We've created a json template [here](lambdaTestVisitCompleted.json) that will allow you to simulate a visitCompleted event. Click on Test and paste in this script then click *Save and Test*. You'll need to edit the Message content to make the Visit UUID valid for your account.
 
-### Deployment
+//TODO: add how to get a valid visitUUID
 
-//todo
+
 
 ## License
 
