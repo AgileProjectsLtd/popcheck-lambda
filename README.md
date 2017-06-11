@@ -46,7 +46,7 @@ If you want to trigger updates from POPCheck events then you'll want to set up a
 1. Click on *Create New Queue* in AWS SQS. Name the new queue *visitsCompleted*.
 1. Accept the default *Standard Queue*
 1. We suggest you change the *Message Retention Period* to 14 days (the maximum period at time of writing). This will allow your messages to queue up in the event of a failure somewhere in the system.
-1. Change the *Receive Message Wait Time* to 20 seconds (the maximum). This enables 'long polling' and means you won't churn the CPU waiting for new messages to arrive.
+1. Change the *Receive Message Wait Time* to 20 seconds (the maximum). This enables 'long polling' and means you won't churn the CPU waiting for new messages to arrive. Note: the right Receive Message Wait Time depends on how you plan to trigger the lambda function.
 1. Make a note of the queue ARN (Amazon Resource Name). It's something like arn:aws:sqs:eu-west-1:123456789012:visitsCompleted. We'll use this when we create the IAM policy. You'll also need to send us the ARN to subscribe to the relevant topic - details below.
 1. Also make a note of the queue URL. It's something like https://sqs.eu-west-1.amazonaws.com/123456789012/visitsCompleted. We'll use this later as *AWS_SQS_QUEUE_URL*
 
@@ -105,7 +105,6 @@ To create a new Lambda function in AWS follow these steps:
 1. Choose *Upload a .ZIP file* and select the file you created on your local machine called popcheck-lambda.zip
 1. Chnage the Handler to be the name of the js file you are using. For example if you are using 'visitsCompleted.js' this becomes 'visitsCompleted.handler'
 1. Choose the existing role you created called 'popcheck_role'
-1. Under *Advanced Settings* set the *Timeout* to 5 minutes. This is the maximum allowed by AWS (at time of writing)
 1. Leave all the other settings as their defaults and click Next
 1. Click *Create function*
 
@@ -123,14 +122,11 @@ We use Environment Variables to store your sensitive data so it doesn't appear i
 * *DBS_DATABASE* (if relevant) to your database name
 * *DBS_USER* (if relevant) to a user with read access to your database
 * *DBS_PASSWORD* (if relevant) to the user's password
-
+* *DBS_TABLE_NAME* (if relevant) to the database table name you are using
 
 ### Testing
 
-Lambda supports test scripts. We've created a json template [here](lambdaTestVisitCompleted.json) that will allow you to simulate a visitCompleted event. Click on Test and paste in this script then click *Save and Test*. You'll need to edit the Message content to make the Visit UUID valid for your account.
-
-//TODO: add how to get a valid visitUUID
-
+Lambda supports test scripts. We've created a json template [here](lambdaTestVisitCompleted.json) that will allow you to simulate a visitCompleted event. Click on Test and paste in this script. You'll need to edit the Message content to make the Visit UUID valid for your account. Get a valid Visit UUID by logging in to POPCheck, click on *Edit Visits* and then click on any visit. The Visit UUID is shown at the bottom of the screen. Paste this in to the script then click *Save and Test*.
 
 
 ## License
