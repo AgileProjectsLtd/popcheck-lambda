@@ -103,7 +103,7 @@ To create a new Lambda function in AWS follow these steps:
 1. Select *Blank Function*. Leave the triggers blank for now and click Next
 1. Add a function name like popcheckVisitsCompleted. Select *Node.js 4.3* as the Runtime
 1. Choose *Upload a .ZIP file* and select the file you created on your local machine called popcheck-lambda.zip
-1. Chnage the Handler to be the name of the js file you are using. For example if you are using 'visitsCompleted.js' this becomes 'visitsCompleted.handler'
+1. Change the Handler to be the name of the js file you are using. For example if you are using 'visitsCompleted.js' this becomes 'visitsCompleted.handler'
 1. Choose the existing role you created called 'popcheck_role'
 1. Leave all the other settings as their defaults and click Next
 1. Click *Create function*
