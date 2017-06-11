@@ -1,0 +1,26 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:*"
+        },
+        {
+            "Sid": "Stmt1423211481000",
+            "Effect": "Allow",
+            "Action": [
+                "sqs:DeleteMessage",
+                "sqs:PurgeQueue",
+                "sqs:ReceiveMessage"
+            ],
+            "Resource": [
+                "arn:aws:sqs:eu-west-1:123456789012:visitsCompleted"
+            ]
+        }
+    ]
+}
