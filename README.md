@@ -122,7 +122,8 @@ We use Environment Variables to store your sensitive data so it doesn't appear i
 * *DBS_DATABASE* (if relevant) to your database name
 * *DBS_USER* (if relevant) to a user with read access to your database
 * *DBS_PASSWORD* (if relevant) to the user's password
-* *DBS_TABLE_NAME* (if relevant) to the database table name you are using
+* *DBS_TABLE_NAME* (if relevant) to the database table name you are using. Note: we also use *DBS_TABLE_NAME_VISITS* and *DBS_TABLE_NAME_RESPONSES* in some scripts.
+
 
 ### Testing
 
