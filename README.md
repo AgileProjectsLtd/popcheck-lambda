@@ -35,10 +35,10 @@ You'll need to set up a user with API access to POPCheck. Steps:
 
 1. Login to your account at [POPCheck](https://www.popcheckapp.com)
 1. Click on your name in the top right and select *Team*
-1. Click *Add New* and enter a name, email and password for the API user. Select *API Access* as the Role. Note that the email does not need to be valid - you can enter 'api@yourorganisation.com' as an example
+1. Click *Add New* and enter a name, email and password for the API user. Select *API Access* as the Role. Note that the email does not need to be valid - you can enter 'api@yourorganisation.com' as an example.
 1. Keep a note of the email address and password. We'll use this later as *POPCHECK_API_EMAIL* and *POPCHECK_API_PASSWORD*.
 
-If you're using queues, you'll also need your *Business ID* to allow us to send messages to your queue. This available on the *Settings* page and will be a UUID like  a12a123a-1234-1aa1-1a1a-a12a1a12abcd.
+If you're using queues, you'll also need your *Business ID* to allow us to send messages to your queue. This is available on the *Settings* page and will be a UUID like  a12a123a-1234-1aa1-1a1a-a12a1a12abcd.
 
 ### AWS Simple Queue Service (optional)
 If you want to trigger updates from POPCheck events then you'll want to set up an SQS queue. This queue will subscribe to events from POPCheck. We'll use the visitsCompleted event as an example. Steps:
@@ -122,7 +122,7 @@ We use Environment Variables to store your sensitive data so it doesn't appear i
 * *DBS_DATABASE* (if relevant) to your database name
 * *DBS_USER* (if relevant) to a user with read access to your database
 * *DBS_PASSWORD* (if relevant) to the user's password
-* *DBS_TABLE_NAME* (if relevant) to the database table name you are using. Note: we also use *DBS_TABLE_NAME_VISITS* and *DBS_TABLE_NAME_RESPONSES* in some scripts.
+* *DBS_TABLE_NAME* (if relevant) to the database table name you are using. Note: we also use other tables like *DBS_TABLE_NAME_VISITS*, *DBS_TABLE_NAME_RESPONSES* and *DBS_TABLE_NAME_PHOTOS* in some scripts.
 
 
 ### Testing

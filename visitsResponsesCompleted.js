@@ -5,7 +5,7 @@ process.env['PATH'] = process.env['PATH'] + ':' + process.env['LAMBDA_TASK_ROOT'
 var AWS = require('aws-sdk');
 var async = require('async');
 var https = require('https');
-var sql = require('mssql')
+var sql = require('mssql');
 
 const POP_CHECK_API_URL = 'api.popcheckapp.com';
 
@@ -24,6 +24,15 @@ function receiveMessages(callback) {
       callback(null, data.Messages);
     }
   });
+}
+
+function joinAndDelimit(obj) {
+  return obj.map(function(item) {
+    if (item === null) {
+      return 'NULL';
+    }
+    return (typeof item === 'string') ? ("'" + item + "'") : item;
+  }).join(',');
 }
 
 function processMessage(message, callback) {
@@ -55,7 +64,7 @@ function processMessage(message, callback) {
         headers: {
           'Content-Type': 'application/json;charset=UTF-8'
         }
-      }
+      };
       var data = '';
       var req = https.request(options, function(res) {
         res.setEncoding('utf8');
@@ -68,7 +77,7 @@ function processMessage(message, callback) {
         });
       });
       req.on('error', (e) => {
-        next(e.message)
+        next(e.message);
       });
       req.write(JSON.stringify(params));
       req.end();
@@ -86,7 +95,7 @@ function processMessage(message, callback) {
         headers: {
           'Authorization': 'Bearer ' + token
         }
-      }
+      };
       var data = '';
       var req = https.request(options, function(res) {
         res.setEncoding('utf8');
@@ -94,11 +103,12 @@ function processMessage(message, callback) {
           data += chunk;
         });
         res.on('end', function () {
+          data = JSON.parse(data);
           next(null, data);
         });
       });
       req.on('error', (e) => {
-        next(e.message)
+        next(e.message);
       });
       req.end();
     },
@@ -117,21 +127,88 @@ function processMessage(message, callback) {
       );
     },
 
-    //HERE: #1 get client name and uuid
-    //#2 add visit data
-    //#3 add response data with reference to visit (visit uuid?)
-    function writeToDatabase(data, pool, next) {
+    function writeToDatabaseVisit(data, pool, next) {
+
+      let visitFields = 'uuid, reference, locationName, locationReference, locationUUID, campaignName, campaignReference, campaignUUID, clientName, clientReference, clientUUID, userName, userUUID, scheduleStartDate, scheduleEndDate, actualStartDate, actualEndDate, startLat, startLng, startAccuracy, endLat, endLng, endAccuracy';
+
+      var visit = [];
+      visit.push(data.uuid, data.reference, data.Location.name, data.Location.reference, data.Location.uuid, data.Campaign.name, data.Campaign.reference, data.Campaign.uuid, data.Campaign.Client.name, data.Campaign.Client.reference, data.Campaign.Client.uuid, data.User.name, data.User.uuid, data.scheduleStartDate, data.scheduleEndDate, data.actualStartDate, data.actualEndDate, data.startLat, data.startLng, data.startAccuracy, data.endLat, data.endLng, data.endAccuracy);
+      visit = joinAndDelimit(visit);
+
+      var query = 'insert into ' + process.env.DBS_TABLE_NAME_VISITS + ' (' + visitFields + ') values (' + visit + ');';
+      var visitId = 0;
       var request = new sql.Request(pool)
-        .input('dataString', sql.VarChar(20000), data)
-        .query('insert into ' + process.env.DBS_TABLE_NAME + ' (data) values (@dataString)', (err, result) => {
-          next(err, result);
+        .query("select IDENT_CURRENT('" + process.env.DBS_TABLE_NAME_VISITS + "')", (err, result) => {
+          if (err) {
+            next(err); return;
+          }
+          var recordset = result.recordset[0];
+          var currentId = recordset[Object.keys(recordset)[0]];
+          visitId = currentId + 1;
+        })
+        .query(query, (err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          next(null, visitId, data, pool);
         });
+
     },
 
-    function checkDatabaseResult(result, next) {
-      //console.log(result);
-      next(null);
-    } 
+    function writeToDatabaseResponses(visitId, data, pool, next) {
+      let responseFields = 'visitId, visitUUID, surveySectionReference, surveySectionName, surveySectionSortOrder, surveyQuestionReference, surveyQuestionType, surveyQuestionSortOrder, surveyQuestion, answer';
+
+      var responses = [];
+      for (var i = 0; i < data.SurveyResponses.length; i++) {
+        var sr = data.SurveyResponses[i];
+        var response = [];
+
+        response.push(visitId, data.uuid, sr.SurveyQuestion.SurveySection.reference, sr.SurveyQuestion.SurveySection.name, sr.SurveyQuestion.SurveySection.sortOrder, sr.SurveyQuestion.reference, sr.SurveyQuestion.type, sr.SurveyQuestion.sortOrder, sr.SurveyQuestion.question, sr.answer);
+        response = joinAndDelimit(response);
+        responses.push(response);
+      }
+
+      var query = 'insert into ' + process.env.DBS_TABLE_NAME_RESPONSES + ' (' + responseFields + ') values (' + responses.join('),(') + ');';
+      
+      if (responses.length) {
+        var request = new sql.Request(pool).query(query, (err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          next(err, visitId, data, pool);
+        });
+      }
+      else {
+          next(null, visitId, data, pool);        
+      }
+    },
+
+    function writeToDatabasePhotos(visitId, data, pool, next) {
+      let photoFields = 'visitId, visitUUID, photoTagReference, photoTagName, photoTagPrefix, url, lat, lng, accuracy';
+
+      let photos = [];
+      for (var i = 0; i < data.Photos.length; i++) {
+        let p = data.Photos[i];
+        let photo = [];
+        photo.push(visitId, data.uuid, p.PhotoTag.reference, p.PhotoTag.name, p.PhotoTag.prefix, p.url, p.lat, p.lng, p.accuracy);
+        photo = joinAndDelimit(photo);
+        photos.push(photo);
+      }
+
+      var query = 'insert into ' + process.env.DBS_TABLE_NAME_PHOTOS + ' (' + photoFields + ') values (' + photos.join('),(') + ');';
+
+      if (photos.length) {
+        var request = new sql.Request(pool).query(query, (err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          next(err, result);
+        });
+      }
+      else {
+        next(null);
+      }
+    }
 
   ], function(err) {
       //try to delete
@@ -144,14 +221,13 @@ function processMessage(message, callback) {
           console.log(e);
           callback(null, "error");
         }
-        if (err) {
+        else if (err) {
           console.log(err);
           callback(null, "error");
         }
         else {
           callback(null, "success");
         }
-
       });
     }
   );
@@ -165,7 +241,7 @@ function handleSQSMessages(context, callback) {
       var promises = [];
       messages.forEach(function(message) {
         promises.push(function(callback) {
-          processMessage(message, callback)
+          processMessage(message, callback);
         });
       });
 
