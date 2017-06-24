@@ -7,6 +7,8 @@ var async = require('async');
 var https = require('https');
 var sql = require('mssql');
 
+var pool; //for database connection
+
 const POP_CHECK_API_URL = 'api.popcheckapp.com';
 
 var sqs = new AWS.SQS({region: process.env.AWS_SQS_REGION});
@@ -14,7 +16,8 @@ var sqs = new AWS.SQS({region: process.env.AWS_SQS_REGION});
 function receiveMessages(callback) {
   var params = {
     QueueUrl: process.env.AWS_SQS_QUEUE_URL,
-    MaxNumberOfMessages: 1  //limit to 1 to get max execution time
+    MaxNumberOfMessages: 1,  //limit to 1 to get max execution time
+    WaitTimeSeconds: 0
   };
   sqs.receiveMessage(params, function(err, data) {
     if (err) {
@@ -104,7 +107,12 @@ function processMessage(message, callback) {
         });
         res.on('end', function () {
           data = JSON.parse(data);
-          next(null, data);
+          if (data.hasOwnProperty('error')) {
+            next(data.error);
+          }
+          else {
+            next(null, data);
+          }
         });
       });
       req.on('error', (e) => {
@@ -113,21 +121,7 @@ function processMessage(message, callback) {
       req.end();
     },
 
-    function connectToDatabase(data, next) {
-      let config = {
-        user: process.env.DBS_USER,
-        password: process.env.DBS_PASSWORD,
-        server: process.env.DBS_SERVER, 
-        database: process.env.DBS_DATABASE
-      };
-      var pool = new sql.ConnectionPool(config, 
-        function(err) {
-          next(err, data, pool);
-        }
-      );
-    },
-
-    function writeToDatabaseVisit(data, pool, next) {
+    function writeToDatabaseVisit(data, next) {
 
       let visitFields = 'uuid, reference, locationName, locationReference, locationUUID, campaignName, campaignReference, campaignUUID, clientName, clientReference, clientUUID, userName, userUUID, scheduleStartDate, scheduleEndDate, actualStartDate, actualEndDate, startLat, startLng, startAccuracy, endLat, endLng, endAccuracy';
 
@@ -150,12 +144,12 @@ function processMessage(message, callback) {
           if (err) {
             console.log(err);
           }
-          next(null, visitId, data, pool);
+          next(null, visitId, data);
         });
 
     },
 
-    function writeToDatabaseResponses(visitId, data, pool, next) {
+    function writeToDatabaseResponses(visitId, data, next) {
       let responseFields = 'visitId, visitUUID, surveySectionReference, surveySectionName, surveySectionSortOrder, surveyQuestionReference, surveyQuestionType, surveyQuestionSortOrder, surveyQuestion, answer';
 
       var responses = [];
@@ -175,15 +169,15 @@ function processMessage(message, callback) {
           if (err) {
             console.log(err);
           }
-          next(err, visitId, data, pool);
+          next(err, visitId, data);
         });
       }
       else {
-          next(null, visitId, data, pool);        
+          next(null, visitId, data);        
       }
     },
 
-    function writeToDatabasePhotos(visitId, data, pool, next) {
+    function writeToDatabasePhotos(visitId, data, next) {
       let photoFields = 'visitId, visitUUID, photoTagReference, photoTagName, photoTagPrefix, url, lat, lng, accuracy';
 
       let photos = [];
@@ -211,24 +205,36 @@ function processMessage(message, callback) {
     }
 
   ], function(err) {
-      //try to delete
-      sqs.deleteMessage({
-        QueueUrl: process.env.AWS_SQS_QUEUE_URL,
-        ReceiptHandle: message.ReceiptHandle
-      },
-      function(e) {
-        if (e) {
-          console.log(e);
-          callback(null, "error");
-        }
-        else if (err) {
-          console.log(err);
+      if (err) {
+        console.log(err);
+      }
+
+      //try to delete whether error or not
+      if (message.hasOwnProperty('ReceiptHandle')) {
+        sqs.deleteMessage({
+          QueueUrl: process.env.AWS_SQS_QUEUE_URL,
+          ReceiptHandle: message.ReceiptHandle
+        },
+        function(e) {
+          if (e) {
+            console.log(e);
+          }
+          if (e || err) {
+            callback(null, "error");
+          }
+          else {
+            callback(null, "success");
+          }
+        });        
+      }
+      else {
+        if (err) {
           callback(null, "error");
         }
         else {
           callback(null, "success");
-        }
-      });
+        }        
+      }
     }
   );
 }
@@ -240,8 +246,8 @@ function handleSQSMessages(context, callback) {
       
       var promises = [];
       messages.forEach(function(message) {
-        promises.push(function(callback) {
-          processMessage(message, callback);
+        promises.push(function(cb) {
+          processMessage(message, cb);
         });
       });
 
@@ -251,12 +257,12 @@ function handleSQSMessages(context, callback) {
           callback(err);
         }
         else {
-          if (context.getRemainingTimeInMillis() > 60000) { //check at least 60s left
+          if (context.getRemainingTimeInMillis() > 10000) { //check at least 10s left
             handleSQSMessages(context, callback); 
           }
           else {
             callback(null, "pause");
-          }         
+          }
         }
       });
     }
@@ -267,11 +273,30 @@ function handleSQSMessages(context, callback) {
 }
 
 exports.handler = function(event, context, callback) {
-  if (event.hasOwnProperty('Messages') && event.Messages.length > 0) {
-    //TESTING
-    processMessage(event.Messages[0], callback);
-  }
-  else {
-    handleSQSMessages(context, callback);
-  }
+  //By default, the callback will wait until the Node.js runtime event loop is empty before freezing the process and returning the results to the caller
+  context.callbackWaitsForEmptyEventLoop = false
+
+  let config = {
+    user: process.env.DBS_USER,
+    password: process.env.DBS_PASSWORD,
+    server: process.env.DBS_SERVER, 
+    database: process.env.DBS_DATABASE
+  };
+  pool = new sql.ConnectionPool(config, 
+    function(err) {
+      if (err) {
+        console.log(err);
+        callback(err);
+        return;
+      }
+
+      if (event.hasOwnProperty('Messages') && event.Messages.length > 0) {
+        //TESTING
+        processMessage(event.Messages[0], callback);
+      }
+      else {
+        handleSQSMessages(context, callback);
+      }
+    }
+  );
 };

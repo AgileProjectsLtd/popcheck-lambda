@@ -188,6 +188,8 @@ function handleSQSMessages(context, callback) {
 }
 
 exports.handler = function(event, context, callback) {
+  context.callbackWaitsForEmptyEventLoop = false
+
   if (event.hasOwnProperty('Messages') && event.Messages.length > 0) {
     //TESTING
     processMessage(event.Messages[0], callback);
