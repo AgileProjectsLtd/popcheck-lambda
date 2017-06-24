@@ -129,6 +129,14 @@ We use Environment Variables to store your sensitive data so it doesn't appear i
 
 Lambda supports test scripts. We've created a json template [here](lambdaTestVisitCompleted.json) that will allow you to simulate a visitCompleted event. Click on Test and paste in this script. You'll need to edit the Message content to make the Visit UUID valid for your account. Get a valid Visit UUID by logging in to POPCheck, click on **Edit Visits** and then click on any visit. The Visit UUID is shown at the bottom of the screen. Paste this in to the script then click **Save and Test**.
 
+### Included Scripts
+
+* *visitsCompleted.js* requests completed visit UUIDs from your SQS queue and then gets the visit data including responses and photo urls from POPCheck via API call and inserts the visit data into a database as a block of JSON data.
+* *visitsResponsesCompleted.js* does the same as *visitsCompleted.js* except that it inserts the data into 3 tables into specific columns for visits, responses and photos
+* *addressLookup.js* is a utility script to lookup an address using Google Maps geocoding. Returns a latitude and longitude on successful lookup.
+* *addressesLookup.js* is a utility script that reads a csv file on S3 and calls *addressLookup.js* with each address. The outcome including latitude and longitude if successful is written back to the same csv file on S3
+* *sendVisitNotifications.js* is a utility script to post SNS messages with visit UUIDs to a specific SNS queue.
+
 
 ## License
 
