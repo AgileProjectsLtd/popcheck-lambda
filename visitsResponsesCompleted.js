@@ -1,5 +1,7 @@
 'use strict';
 
+//zip -r ../popcheck-lambda.zip *
+
 process.env['PATH'] = process.env['PATH'] + ':' + process.env['LAMBDA_TASK_ROOT'];
 
 var AWS = require('aws-sdk');
@@ -34,7 +36,12 @@ function joinAndDelimit(obj) {
     if (item === null) {
       return 'NULL';
     }
-    return (typeof item === 'string') ? ("'" + item + "'") : item;
+    if (typeof item === 'string') {
+      return ("'" + item.replace(/'/g, "") + "'");
+    }
+    else {
+      return item;
+    }
   }).join(',');
 }
 
@@ -146,7 +153,6 @@ function processMessage(message, callback) {
           }
           next(null, visitId, data);
         });
-
     },
 
     function writeToDatabaseResponses(visitId, data, next) {
@@ -156,7 +162,6 @@ function processMessage(message, callback) {
       for (var i = 0; i < data.SurveyResponses.length; i++) {
         var sr = data.SurveyResponses[i];
         var response = [];
-
         response.push(visitId, data.uuid, sr.SurveyQuestion.SurveySection.reference, sr.SurveyQuestion.SurveySection.name, sr.SurveyQuestion.SurveySection.sortOrder, sr.SurveyQuestion.reference, sr.SurveyQuestion.type, sr.SurveyQuestion.sortOrder, sr.SurveyQuestion.question, sr.answer);
         response = joinAndDelimit(response);
         responses.push(response);
@@ -168,6 +173,7 @@ function processMessage(message, callback) {
         var request = new sql.Request(pool).query(query, (err, result) => {
           if (err) {
             console.log(err);
+            console.log(query);
           }
           next(err, visitId, data);
         });
