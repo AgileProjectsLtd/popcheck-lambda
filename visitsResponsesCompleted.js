@@ -100,7 +100,7 @@ function processMessage(message, callback) {
       let options = {
         host: POP_CHECK_API_URL,
         port: '443',
-        path: '/v1.0/visits/client/' + visitUUID,
+        path: '/v1.0/visits/client/' + visitUUID + '?forceRequireSurveyQuestionSurveySectionPhotoTag=1',
         method: 'GET',
         headers: {
           'Authorization': 'Bearer ' + token
