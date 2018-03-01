@@ -8,6 +8,7 @@ var AWS = require('aws-sdk');
 var async = require('async');
 var https = require('https');
 var sql = require('mssql');
+const uuidv4 = require('uuid/v4');
 
 var pool; //for database connection
 
@@ -130,39 +131,32 @@ function processMessage(message, callback) {
 
     function writeToDatabaseVisit(data, next) {
 
-      let visitFields = 'uuid, reference, locationName, locationReference, locationUUID, campaignName, campaignReference, campaignUUID, clientName, clientReference, clientUUID, userName, userUUID, scheduleStartDate, scheduleEndDate, actualStartDate, actualEndDate, startLat, startLng, startAccuracy, endLat, endLng, endAccuracy';
+      let visitFields = 'local_visit_id, visitUUID, reference, locationName, locationReference, locationUUID, campaignName, campaignReference, campaignUUID, clientName, clientReference, clientUUID, userName, userUUID, scheduleStartDate, scheduleEndDate, actualStartDate, actualEndDate, startLat, startLng, startAccuracy, endLat, endLng, endAccuracy';
+
+      //generate unique local visit id (uuid in this case)
+      const local_visit_id = uuidv4(); // ⇨ '416ac246-e7ac-49ff-93b4-f7e94d997e6b'
 
       var visit = [];
-      visit.push(data.uuid, data.reference, data.Location.name, data.Location.reference, data.Location.uuid, data.Campaign.name, data.Campaign.reference, data.Campaign.uuid, data.Campaign.Client.name, data.Campaign.Client.reference, data.Campaign.Client.uuid, data.User.name, data.User.uuid, data.scheduleStartDate, data.scheduleEndDate, data.actualStartDate, data.actualEndDate, data.startLat, data.startLng, data.startAccuracy, data.endLat, data.endLng, data.endAccuracy);
+      visit.push(local_visit_id, data.uuid, data.reference, data.Location.name, data.Location.reference, data.Location.uuid, data.Campaign.name, data.Campaign.reference, data.Campaign.uuid, data.Campaign.Client.name, data.Campaign.Client.reference, data.Campaign.Client.uuid, data.User.name, data.User.uuid, data.scheduleStartDate, data.scheduleEndDate, data.actualStartDate, data.actualEndDate, data.startLat, data.startLng, data.startAccuracy, data.endLat, data.endLng, data.endAccuracy);
       visit = joinAndDelimit(visit);
 
       var query = 'insert into ' + process.env.DBS_TABLE_NAME_VISITS + ' (' + visitFields + ') values (' + visit + ');';
-      var visitId = 0;
-      var request = new sql.Request(pool)
-        .query("select IDENT_CURRENT('" + process.env.DBS_TABLE_NAME_VISITS + "')", (err, result) => {
-          if (err) {
-            next(err); return;
-          }
-          var recordset = result.recordset[0];
-          var currentId = recordset[Object.keys(recordset)[0]];
-          visitId = currentId + 1;
-        })
-        .query(query, (err, result) => {
-          if (err) {
-            console.log(err);
-          }
-          next(null, visitId, data);
-        });
+      var request = new sql.Request(pool).query(query, (err, result) => {
+        if (err) {
+          console.log(err);
+        }
+        next(null, local_visit_id, data);
+      });
     },
 
-    function writeToDatabaseResponses(visitId, data, next) {
-      let responseFields = 'visitId, visitUUID, surveySectionReference, surveySectionName, surveySectionSortOrder, surveyQuestionReference, surveyQuestionType, surveyQuestionSortOrder, surveyQuestion, answer';
+    function writeToDatabaseResponses(local_visit_id, data, next) {
+      let responseFields = 'local_visit_id, visitUUID, surveySectionReference, surveySectionName, surveySectionSortOrder, surveyQuestionReference, surveyQuestionType, surveyQuestionSortOrder, surveyQuestion, answer';
 
       var responses = [];
       for (var i = 0; i < data.SurveyResponses.length; i++) {
         var sr = data.SurveyResponses[i];
         var response = [];
-        response.push(visitId, data.uuid, sr.SurveyQuestion.SurveySection.reference, sr.SurveyQuestion.SurveySection.name, sr.SurveyQuestion.SurveySection.sortOrder, sr.SurveyQuestion.reference, sr.SurveyQuestion.type, sr.SurveyQuestion.sortOrder, sr.SurveyQuestion.question, sr.answer);
+        response.push(local_visit_id, data.uuid, sr.SurveyQuestion.SurveySection.reference, sr.SurveyQuestion.SurveySection.name, sr.SurveyQuestion.SurveySection.sortOrder, sr.SurveyQuestion.reference, sr.SurveyQuestion.type, sr.SurveyQuestion.sortOrder, sr.SurveyQuestion.question, sr.answer);
         response = joinAndDelimit(response);
         responses.push(response);
       }
@@ -175,22 +169,22 @@ function processMessage(message, callback) {
             console.log(err);
             console.log(query);
           }
-          next(err, visitId, data);
+          next(err, local_visit_id, data);
         });
       }
       else {
-          next(null, visitId, data);        
+          next(null, local_visit_id, data);        
       }
     },
 
-    function writeToDatabasePhotos(visitId, data, next) {
-      let photoFields = 'visitId, visitUUID, photoTagReference, photoTagName, photoTagPrefix, url, lat, lng, accuracy';
+    function writeToDatabasePhotos(local_visit_id, data, next) {
+      let photoFields = 'local_visit_id, visitUUID, photoTagReference, photoTagName, photoTagPrefix, url, lat, lng, accuracy';
 
       let photos = [];
       for (var i = 0; i < data.Photos.length; i++) {
         let p = data.Photos[i];
         let photo = [];
-        photo.push(visitId, data.uuid, p.PhotoTag.reference, p.PhotoTag.name, p.PhotoTag.prefix, p.url, p.lat, p.lng, p.accuracy);
+        photo.push(local_visit_id, data.uuid, p.PhotoTag.reference, p.PhotoTag.name, p.PhotoTag.prefix, p.url, p.lat, p.lng, p.accuracy);
         photo = joinAndDelimit(photo);
         photos.push(photo);
       }
