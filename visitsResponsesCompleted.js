@@ -116,6 +116,7 @@ function processMessage(message, callback) {
         res.on('end', function () {
           data = JSON.parse(data);
           if (data.hasOwnProperty('error')) {
+            //console.log('error with visitUUID ' + visitUUID)
             next(data.error);
           }
           else {
