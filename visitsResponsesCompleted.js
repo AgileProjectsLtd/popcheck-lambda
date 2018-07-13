@@ -144,7 +144,9 @@ function processMessage(message, callback) {
       var query = 'insert into ' + process.env.DBS_TABLE_NAME_VISITS + ' (' + visitFields + ') values (' + visit + ');';
       var request = new sql.Request(pool).query(query, (err, result) => {
         if (err) {
+          console.log('Visit insert error');
           console.log(err);
+          console.log(query);
         }
         next(null, local_visit_id, data);
       });
@@ -153,24 +155,46 @@ function processMessage(message, callback) {
     function writeToDatabaseResponses(local_visit_id, data, next) {
       let responseFields = 'local_visit_id, visitUUID, surveySectionReference, surveySectionName, surveySectionSortOrder, surveyQuestionReference, surveyQuestionType, surveyQuestionSortOrder, surveyQuestion, answer';
 
-      var responses = [];
+      var responses1 = [];
+      var responses2 = [];
       for (var i = 0; i < data.SurveyResponses.length; i++) {
         var sr = data.SurveyResponses[i];
         var response = [];
         response.push(local_visit_id, data.uuid, sr.SurveyQuestion.SurveySection.reference, sr.SurveyQuestion.SurveySection.name, sr.SurveyQuestion.SurveySection.sortOrder, sr.SurveyQuestion.reference, sr.SurveyQuestion.type, sr.SurveyQuestion.sortOrder, sr.SurveyQuestion.question, sr.answer);
         response = joinAndDelimit(response);
-        responses.push(response);
+        if (responses1.length < 1000) {
+          responses1.push(response);
+        }
+        else {
+          responses2.push(response);
+        }
       }
 
-      var query = 'insert into ' + process.env.DBS_TABLE_NAME_RESPONSES + ' (' + responseFields + ') values (' + responses.join('),(') + ');';
+      var query1 = 'insert into ' + process.env.DBS_TABLE_NAME_RESPONSES + ' (' + responseFields + ') values (' + responses1.join('),(') + ');';
+      var query2 = 'insert into ' + process.env.DBS_TABLE_NAME_RESPONSES + ' (' + responseFields + ') values (' + responses2.join('),(') + ');';
       
-      if (responses.length) {
-        var request = new sql.Request(pool).query(query, (err, result) => {
+      if (responses1.length) {
+        var request1 = new sql.Request(pool).query(query1, (err, result) => {
           if (err) {
+            console.log('Responses1 insert error');
             console.log(err);
-            console.log(query);
+            console.log(query1);
           }
-          next(err, local_visit_id, data);
+
+          if (responses2.length) {
+            var request2 = new sql.Request(pool).query(query2, (err, result) => {
+              if (err) {
+                console.log('Responses2 insert error');
+                console.log(err);
+                console.log(query2);
+              }
+              next(err, local_visit_id, data);
+            });
+          }
+          else {
+              next(null, local_visit_id, data);        
+          }
+          
         });
       }
       else {
@@ -195,7 +219,9 @@ function processMessage(message, callback) {
       if (photos.length) {
         var request = new sql.Request(pool).query(query, (err, result) => {
           if (err) {
+            console.log('Photos insert error');
             console.log(err);
+            console.log(query);
           }
           next(err, result);
         });
