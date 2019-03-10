@@ -12,7 +12,6 @@ const uuidv4 = require('uuid/v4');
 
 var pool; //for database connection
 
-//const POP_CHECK_API_URL = 'api.popcheckapp.com';
 const POP_CHECK_API_URL = 'a.popcheckapp.com';
 
 var sqs = new AWS.SQS({region: process.env.AWS_SQS_REGION});
@@ -71,7 +70,6 @@ function processMessage(message, callback) {
       let options = {
         host: POP_CHECK_API_URL,
         port: '443',
-        //path: '/v1.0/login',
         path: '/v2/login',
         method: 'POST',
         headers: {
@@ -103,7 +101,6 @@ function processMessage(message, callback) {
       let options = {
         host: POP_CHECK_API_URL,
         port: '443',
-        //path: '/v1.0/visits/client/' + visitUUID + '?forceRequireSurveyQuestionSurveySectionPhotoTag=1',
         path: '/v2/visits/client/' + visitUUID + '?forceRequireSurveyQuestionSurveySectionPhotoTag=1',
         method: 'GET',
         headers: {
